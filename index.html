@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Almanaque TTRPG</title>
+<meta name="description" content="Almanaque TTRPG: crie mapas modulares e jogue com névoa, luz, régua e vista isométrica. Leve, feito para o celular.">
+<meta name="theme-color" content="#1b2127" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f8f9" media="(prefers-color-scheme: light)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar"><div class="gut bar">
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z M3 9h18 M3 15h18 M9 3v18 M15 3v18" opacity=".55"/><path d="M9 9h6v6H9z" fill="currentColor"/></svg><span>Almanaque</span></div>
+  <div class="seg modeseg" id="modeseg" role="group" aria-label="Modo">
+    <button type="button" data-mode="criar" aria-pressed="true">Criar</button>
+    <button type="button" data-mode="jogar" aria-pressed="false">Jogar</button>
+  </div>
+  <span class="sp"></span>
+  <button id="b-undo" class="ib" type="button" aria-label="Desfazer" disabled></button>
+  <button id="b-redo" class="ib" type="button" aria-label="Refazer" disabled></button>
+  <button id="b-menu" class="ib" type="button" aria-label="Menu do mapa" aria-haspopup="dialog"></button>
+</div></header>
+
+<main class="stage" id="stage">
+  <canvas id="cv" role="img" aria-label="Mapa"></canvas>
+  <div id="hint" class="pill hint"></div>
+  <div id="banner" class="banner" hidden><span id="banner-t">O Ateliê mudou. A mesa ainda está com a versão antiga.</span><button id="banner-b" type="button">Atualizar mesa</button></div>
+  <div id="readout" class="pill readout"></div>
+  <div class="fabs">
+    <button id="b-fit" class="ib" type="button" aria-label="Enquadrar o mapa"></button>
+    <button id="b-iso" class="ib" type="button" aria-label="Vista isométrica" aria-pressed="false"></button>
+    <button id="b-rot" class="ib" type="button" aria-label="Girar a vista" hidden></button>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</main>
+
+<footer class="dock">
+  <div id="opts" class="gut opts"></div>
+  <nav id="tools" class="gut tools" role="toolbar" aria-label="Ferramentas"></nav>
+</footer>
+
+<div id="sheet" class="sheet" hidden>
+  <div class="sheet-body gut" role="dialog" aria-modal="true" aria-labelledby="sh-title">
+    <div class="sheet-head"><h2 id="sh-title">Mapa</h2><button id="sh-close" class="btn" type="button" style="min-height:44px;padding:0 16px;border:1px solid var(--line);background:var(--surface-2);border-radius:10px">Fechar</button></div>
+
+    <div id="sec-edit">
+      <h3>Nome e tamanho</h3>
+      <label for="m-name">Nome<input id="m-name" type="text" maxlength="60" autocomplete="off"></label>
+      <div class="row" style="margin-top:10px">
+        <label class="grow" for="m-size">Tamanho em quadrados
+          <select id="m-size">
+            <option value="20x15">20 × 15 (pequeno)</option>
+            <option value="32x24">32 × 24 (médio)</option>
+            <option value="48x36">48 × 36 (grande)</option>
+            <option value="64x48">64 × 48 (enorme)</option>
+          </select></label>
+        <button id="m-apply" class="btn" type="button" style="align-self:flex-end">Aplicar</button>
+      </div>
+      <p>Ao mudar o tamanho, o que já está desenhado é mantido a partir do canto de cima à esquerda.</p>
+      <div class="row" style="margin-top:12px">
+        <button id="m-demo" class="btn" type="button">Carregar mapa de exemplo</button>
+        <button id="m-new" class="btn dng" type="button">Novo mapa vazio</button>
+      </div>
+    </div>
+
+    <div id="sec-measure">
+      <h3>Medição</h3>
+      <div class="row">
+        <label class="grow" for="m-per">Valor de 1 quadrado<input id="m-per" type="number" inputmode="decimal" min="0.1" step="0.1"></label>
+        <label class="grow" for="m-unit">Unidade<input id="m-unit" type="text" maxlength="8" autocomplete="off"></label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="m-p15" class="btn" type="button">1 quadrado = 1,5 m</button>
+        <button id="m-p5" class="btn" type="button">1 quadrado = 5 pés</button>
+      </div>
+      <label for="m-diag" style="margin-top:10px">Contagem na diagonal
+        <select id="m-diag">
+          <option value="euclid">Linha reta (distância real)</option>
+          <option value="cheb">Diagonal conta como 1 quadrado</option>
+          <option value="alt">Diagonais alternam 1 e 2 quadrados</option>
+        </select></label>
+      <p>Escolha a regra que a sua mesa usa. O app não decide isso por você.</p>
+    </div>
+
+    <h3>Tela</h3>
+    <label class="check" for="m-grid"><input id="m-grid" type="checkbox"> Mostrar a grade</label>
+    <label for="m-wallh" style="margin-top:6px">Altura das paredes na vista isométrica
+      <select id="m-wallh">
+        <option value="0">Baixas (enxerga atrás delas)</option>
+        <option value="1">Médias</option>
+        <option value="2">Altas</option>
+      </select></label>
+
+    <div id="sec-mesa">
+      <h3>Ateliê e mesa</h3>
+      <p>O Ateliê é onde você constrói. A mesa é uma cópia para jogar: nela dá para mexer em tudo sem estragar o mapa.</p>
+      <div class="row" style="margin-top:10px">
+        <button id="m-send" class="btn pri" type="button">Enviar o Ateliê para a mesa</button>
+        <button id="m-fetch" class="btn" type="button">Trazer a mesa para o Ateliê</button>
+      </div>
+    </div>
+
+    <div id="sec-backup">
+      <h3>Guardar e levar</h3>
+      <div class="row"><button id="m-copy" class="btn pri" type="button">Copiar o mapa como texto</button><button id="m-load" class="btn" type="button">Carregar o texto abaixo</button></div>
+      <label for="m-text" style="margin-top:10px">Texto do mapa<textarea id="m-text" spellcheck="false" placeholder="Cole aqui um mapa copiado antes e toque em Carregar."></textarea></label>
+      <p>O mapa e a mesa são salvos sozinhos neste aparelho. Para passar para outro aparelho, copie o texto e cole lá.</p>
+    </div>
+
+    <h3>Sobre</h3>
+    <p>Almanaque TTRPG, por <a href="https://github.com/vilhenach" style="color:var(--accent)" target="_blank" rel="noopener">vilhenach</a> · versão <span id="m-ver"></span>.</p>
+    <p>Todos os pisos e objetos são desenhados por código dentro deste app. Não há arquivos de imagem de terceiros, então não há créditos a dar.</p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
